@@ -1,7 +1,7 @@
 {
   "name": "deckflix",
   "productName": "DeckFlix",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Minimal Electron wrapper for netflix.com with full gamepad/remote spatial navigation",
   "main": "main.js",
   "license": "MIT",
@@ -15,6 +15,6 @@
     "electron": "https://github.com/castlabs/electron-releases#v44.9.3+wvcus"
   },
   "dependencies": {
-    "dbus-next": "^0.10.2"
+    "dbus-native": "^0.16.3"
   }
 }
