@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=DeckFlix
+Comment=Netflix with controller-first spatial navigation
+Exec=deckflix
+Icon=com.deckflix.DeckFlix
+Terminal=false
+Categories=AudioVideo;Video;Player;
+StartupWMClass=DeckFlix

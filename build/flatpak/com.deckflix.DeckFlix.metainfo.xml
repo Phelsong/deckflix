@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.deckflix.DeckFlix</id>
+  <name>DeckFlix</name>
+  <summary>Netflix with console-style spatial navigation</summary>
+  <launchable type="desktop-id">com.deckflix.DeckFlix.desktop</launchable>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer_name>DeckFlix contributors</developer_name>
+  <description>
+    <p>
+      DeckFlix is a minimal desktop wrapper for netflix.com built for the
+      big screen: it loads the real Netflix web app and layers a custom
+      spatial navigator on top, so the entire UI can be driven with a
+      game controller or TV remote. No keyboard required.
+    </p>
+    <p>
+      Playback uses the Widevine CDM (installed automatically on first
+      launch by the castlabs Electron runtime). On Linux, Widevine L3
+      limits streaming resolution to about 720p — this is a platform
+      limitation, not an app limitation.
+    </p>
+  </description>
+  <releases>
+    <release version="0.1.0" date="2026-11-01">
+      <description>
+        <p>Initial release: spatial navigator (browse + player modes), gamepad/remote input bus, Flatpak packaging.</p>
+      </description>
+    </release>
+  </releases>
+  <content_rating type="oars-1.1" />
+</component>

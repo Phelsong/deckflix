@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- DeckFlix icon: dark tile, red play triangle, three deck dots -->
+  <rect width="512" height="512" rx="96" fill="#14141c"/>
+  <rect x="48" y="48" width="416" height="416" rx="72" fill="#0d0d13"/>
+  <path d="M168 116 L336 208 L168 300 Z" fill="#e50914"/>
+  <circle cx="192" cy="376" r="24" fill="#e50914"/>
+  <circle cx="272" cy="376" r="24" fill="#e50914"/>
+  <circle cx="352" cy="376" r="24" fill="#e50914"/>
+</svg>

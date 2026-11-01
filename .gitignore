@@ -1,0 +1,14 @@
+node_modules/
+package-lock.json
+build/flatpak/build-dir/
+build/flatpak/.flatpak-builder/
+.flatpak-builder
+*.log
+*-delete
+
+# flatpak build artifacts (regenerable)
+.flatpak-build/
+build/flatpak/*-delete
+
+# flatpak bundle exports
+dist/

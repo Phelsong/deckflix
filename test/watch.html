@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+<!--
+  Player-mode fixture: black video surface + a bottom control bar and a
+  fixed Skip-Intro button, like the Netflix player. Served by harness.js
+  at /watch/123 so pathname routing selects player mode. The bare page
+  (no browse rows) gives spatial navigation over controls a realistic
+  candidate pool. It also hosts a faithful replica of Netflix's idle
+  autohide machinery (movement-required timers, opacity+pointer-events
+  hide) for the wake/force-show tests via deckflix-test events.
+-->
+<head>
+<style>
+  body { margin: 0; background: #000; color: #fff; font: 16px sans-serif; overflow: hidden; }
+  #player-shell { position: fixed; inset: 0; background: #000; }
+  video { position: absolute; inset: 0; width: 100%; height: 100%; background: #111; }
+  .controls { position: absolute; left: 40px; width: 900px; bottom: 40px; display: flex; gap: 12px;
+              transition: opacity 220ms ease-out; }
+  .controls.controls-away { opacity: 0; pointer-events: none; }
+  .controls button { padding: 12px 20px; background: rgba(255, 255, 255, 0.18);
+                     color: #fff; border: none; border-radius: 6px; font: 15px sans-serif;
+                     white-space: nowrap; }
+  #skip { position: absolute; right: 60px; bottom: 80px; padding: 18px 40px;
+          background: #fff; color: #000; font-weight: bold; border: none; cursor: pointer; }
+</style>
+</head>
+
+<div id="player-shell">
+  <video id="player-video" paused></video>
+
+  <div class="controls">
+    <button id="pc-back">Back</button>
+    <button id="pc-play">Play / Pause</button>
+    <button id="pc-seekback">⟪ 10 s</button>
+    <button id="pc-seekfwd">⟫ 10 s</button>
+    <button id="pc-full">Fullscreen</button>
+    <button id="pc-next">Next Episode</button>
+  </div>
+
+  <button id="skip" class="watch-video--skip-content-button">Skip Intro</button>
+</div>
+
+<script>
+  // Test fixtures (page world) + sessionStorage mirrors (shared across JS
+  // worlds); replica ops arrive via deckflix-test events.
+  window.__keys = [];
+  window.__clicks = [];
+  window.__feedback = [];
+  window.__pulses = [];
+  window.__hovers = 0;
+  window.__trustedKeys = [];
+  const mirror = (key, value) => {
+    try { sessionStorage.setItem('df-test:' + key, JSON.stringify(value)); } catch {}
+  };
+  const recordKeys = (e) => { if (e.isTrusted) return; window.__keys.push(e.key); mirror('keys', window.__keys); };
+  const recordTrusted = (e) => { if (!e.isTrusted) return; window.__trustedKeys.push(e.key); mirror('trusted', window.__trustedKeys); };
+  window.addEventListener('keydown', recordKeys);
+  window.addEventListener('keydown', recordTrusted);
+  window.addEventListener('deckflix-feedback', (e) => { window.__feedback.push(e.detail?.text ?? ''); mirror('feedback', window.__feedback); });
+  window.addEventListener('deckflix-pulse', () => { window.__pulses.push(1); mirror('pulses', window.__pulses); });
+  window.addEventListener('mouseover', () => { window.__hovers++; mirror('hovers', window.__hovers); });
+  addEventListener('DOMContentLoaded', () => {
+    const mirrorClicks = () => mirror('clicks', window.__clicks);
+    const click = (el, name) => el && el.addEventListener('click', () => { window.__clicks.push(name); mirrorClicks(); });
+    click(document.getElementById('skip'), 'skip');
+    for (const el of document.querySelectorAll('.controls button')) {
+      click(el, el.id);
+    }
+
+    // Replica of Netflix's player idle machinery: mouse/pointer activity
+    // resets a 3 s timer; "requires real movement" (movementX/Y) is how
+    // zero-delta synthetic noise gets filtered (the wake must carry
+    // movement deltas to count).
+    window.__replica = { shown: true, wakeEvents: 0, movementLog: [], timer: null };
+    const controlsEl = document.querySelector('.controls');
+    const rep = () => mirror('replica', {
+      shown: window.__replica.shown,
+      wakeEvents: window.__replica.wakeEvents,
+      movementLog: window.__replica.movementLog,
+    });
+    const showControls = () => {
+      controlsEl.classList.remove('controls-away');
+      window.__replica.shown = true;
+      rep();
+    };
+    const activity = (e) => {
+      window.__replica.wakeEvents++;
+      window.__replica.movementLog.push((e.isTrusted ? 'T' : 'S') + ':' + (e.type || '?') + ':' + (e.movementX || 0) + ',' + (e.movementY || 0));
+      rep();
+      if ((e.movementX || 0) !== 0 || (e.movementY || 0) !== 0 || e.__forceWake) showControls();
+    };
+    window.addEventListener('mousemove', activity, true);
+    window.addEventListener('pointermove', activity, true);
+    window.addEventListener('wheel', (e) => { e.__forceWake = true; activity(e); }, true);
+    window.__replica.armIdle = (ms) => {
+      window.__replica.timer = setTimeout(() => {
+        controlsEl.classList.add('controls-away');
+        window.__replica.shown = false;
+        rep();
+      }, ms);
+    };
+    window.__replica.show = showControls;
+    showControls(); // boot: shown, idle NOT armed (the probe arms it)
+    const video = document.getElementById('player-video');
+    if (video) video.volume = 0.5;
+  });
+  window.addEventListener('deckflix-test', (e) => {
+    const op = (e.detail || {}).op;
+    if (op === 'arm-idle') {
+      window.__replica?.armIdle?.(e.detail.ms || 3000);
+      mirror('replica', { shown: window.__replica.shown, wakeEvents: 0, movementLog: [] });
+    }
+    else if (op === 'reset-replica') {
+      if (window.__replica) { window.__replica.wakeEvents = 0; window.__replica.movementLog = []; }
+      mirror('replica', { shown: window.__replica.shown, wakeEvents: 0, movementLog: [] });
+    }
+  });
+</script>
+</html>

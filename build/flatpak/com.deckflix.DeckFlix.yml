@@ -1,0 +1,57 @@
+# DeckFlix flatpak manifest.
+#
+# This manifest installs the PREBUILT app: run `npm install` in the
+# project root first (that's also how you get the castlabs Electron
+# + Widevine binary), then build with ../build-flatpak.sh (or manually):
+#
+#   cd build/flatpak
+#   flatpak-builder --user --force-clean --install build-dir com.deckflix.DeckFlix.yml
+#   flatpak run com.deckflix.DeckFlix
+#
+# No network is needed during the build (nothing is compiled or fetched).
+#
+# NOTE for a Flathub submission: the `dir` source below must be replaced
+# with a git source of this repo, and npm's fetches turned into declared
+# sources per Flathub policy (see:
+# https://docs.flathub.org/docs/for-app-authors/manifests).
+app-id: com.deckflix.DeckFlix
+runtime: org.freedesktop.Platform
+runtime-version: '26.08'
+sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: '26.08'
+command: deckflix
+separate-locales: false
+
+finish-args:
+  - --share=ipc
+  - --share=network
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --device=dri           # hardware video decode for the player
+  - --device=input         # gamepad / TV remote evdev access
+  # Chromium enumerates gamepads via udev (libudev); /run/udev must be
+  # visible or getGamepads() stays empty (Edge/Heroic/gfn-electron all
+  # need this). Requires the pad to be plugged in BEFORE launch: hotplug
+  # events don't reach the sandbox (no udev netlink monitor).
+  - --filesystem=/run/udev:ro
+  - --own-name=org.mpris.MediaPlayer2.deckflix  # desktop media controls / media keys
+  - --talk-name=org.freedesktop.ScreenSaver
+
+modules:
+  - name: deckflix
+    buildsystem: simple
+    build-commands:
+      - |
+        mkdir -p /app/deckflix
+        cp -r main.js preload.js lib package.json node_modules /app/deckflix/
+      - install -Dm755 build/flatpak/deckflix.sh /app/bin/deckflix
+      - install -Dm644 build/flatpak/com.deckflix.DeckFlix.desktop /app/share/applications/com.deckflix.DeckFlix.desktop
+      - install -Dm644 build/flatpak/com.deckflix.DeckFlix.metainfo.xml /app/share/metainfo/com.deckflix.DeckFlix.metainfo.xml
+      - install -Dm644 assets/icon-128.png /app/share/icons/hicolor/128x128/apps/com.deckflix.DeckFlix.png
+      - install -Dm644 assets/icon-256.png /app/share/icons/hicolor/256x256/apps/com.deckflix.DeckFlix.png
+      - install -Dm644 assets/icon.svg /app/share/icons/hicolor/scalable/apps/com.deckflix.DeckFlix.svg
+    sources:
+      - type: dir
+        path: ../..

@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+<!--
+  Synthetic pages mimicking the Netflix DOM shapes the spatial navigator
+  targets (browse rows/links/profiles + player skip button). Served by
+  test/harness.js over http://127.0.0.1:<port>/ and /watch/123 so the
+  real pathname routing in lib/spatial.js is exercised.
+-->
+<head>
+<style>
+  body { margin: 0; background: #141414; color: #fff; font: 16px sans-serif; overflow-y: scroll; }
+  .topnav a { display: inline-block; padding: 12px 24px; color: #bbb; }
+  .row { white-space: nowrap; padding: 24px 48px; }
+  .slider-item { display: inline-block; width: 220px; }
+  .slider-item a { height: 120px; margin: 0 6px; background: #333; border-radius: 6px;
+                   color: #fff; text-decoration: none; display: flex;
+                   align-items: center; justify-content: center; }
+  .wide { padding: 24px 48px; }
+  .wide .slider-item { width: 640px; }
+  #skip { position: fixed; right: 60px; bottom: 80px; padding: 18px 40px;
+          background: #fff; color: #000; font-weight: bold; border: none; cursor: pointer; }
+</style>
+</head>
+
+<nav class="topnav">
+  <a href="#home" id="nav-home">Home</a>
+  <a href="#shows" id="nav-shows">Shows</a>
+  <a href="#latest" id="nav-latest">New &amp; Popular</a>
+  <a href="#search" id="nav-search">Search</a>
+  <button id="open-modal" style="margin-left:24px;">Open Modal</button>
+</nav>
+
+<div class="row" id="row-1">
+  <div class="slider-item"><a href="#r1c1" id="r1c1">R1: Alpha</a></div>
+  <div class="slider-item"><a href="#r1c2" id="r1c2">R1: Bravo</a></div>
+  <div class="slider-item"><a href="#r1c3" id="r1c3">R1: Charlie</a></div>
+  <div class="slider-item"><a href="#r1c4" id="r1c4">R1: Delta</a></div>
+</div>
+
+<div class="row wide" id="row-2">
+  <div class="slider-item"><a href="#r2c1" id="r2c1">R2: Echo</a></div>
+  <div class="slider-item"><a href="#r2c2" id="r2c2">R2: Foxtrot</a></div>
+</div>
+
+<div class="wide">
+  <div class="slider-item" data-profile-guid="p1" id="prof-1"><a href="#pf1" id="pf1">Profile 1</a></div>
+</div>
+
+<script>
+  // Test fixtures (page world) + sessionStorage mirrors. The isolated-world
+  // driver can't read page JS objects; every change mirrors into
+  // sessionStorage (shared across JS worlds); replica ops arrive via
+  // deckflix-test events.
+  window.__keys = [];
+  window.__clicks = [];
+  window.__feedback = [];
+  window.__pulses = [];
+  window.__hovers = 0;
+  window.__trustedKeys = [];
+  const mirror = (key, value) => {
+    try { sessionStorage.setItem('df-test:' + key, JSON.stringify(value)); } catch {}
+  };
+  const recordKeys = (e) => { if (e.isTrusted) return; window.__keys.push(e.key); mirror('keys', window.__keys); };
+  const recordTrusted = (e) => { if (!e.isTrusted) return; window.__trustedKeys.push(e.key); mirror('trusted', window.__trustedKeys); };
+  window.addEventListener('keydown', recordKeys);
+  window.addEventListener('keydown', recordTrusted);
+  window.addEventListener('deckflix-feedback', (e) => { window.__feedback.push(e.detail?.text ?? ''); mirror('feedback', window.__feedback); });
+  window.addEventListener('deckflix-pulse', () => { window.__pulses.push(1); mirror('pulses', window.__pulses); });
+  window.addEventListener('mouseover', () => { window.__hovers++; mirror('hovers', window.__hovers); });
+  window.addEventListener('deckflix-test', (e) => {
+    const op = (e.detail || {}).op;
+    if (op === 'arm-idle') window.__replica?.armIdle?.(e.detail.ms);
+    else if (op === 'show-controls') { window.__replica?.show?.(); }
+    else if (op === 'reset-replica') {
+      window.__replica.wakeEvents = 0;
+      window.__replica.movementLog = [];
+      mirror('replica', JSON.stringify({ shown: window.__replica.shown, wakeEvents: 0, movementLog: [] }));
+    } else if (op === 'mirror-replica') {
+      mirror('replica', JSON.stringify({
+        shown: window.__replica.shown,
+        wakeEvents: window.__replica.wakeEvents,
+        movementLog: window.__replica.movementLog,
+      }));
+    }
+  });
+  addEventListener('DOMContentLoaded', () => {
+    const click = (el, name) => el && el.addEventListener('click', () => { window.__clicks.push(name); mirror('clicks', window.__clicks); });
+    const skip = document.getElementById('skip');
+    click(skip, 'skip');
+    click(document.getElementById('m-close'), 'm-close');
+    const video = document.getElementById('player-video');
+    if (video) video.volume = 0.5;
+  });
+</script>
+
+<button id="skip" class="watch-video--skip-content-button">Skip Intro</button>
+
+<!-- Player-mode volume/playback fallback target (no source needed for volume states) -->
+<video id="player-video" style="position:fixed; left:10px; bottom:10px; width:320px; height:180px;" paused></video>
+
+<!-- Spacer so the page can actually scroll (right-stick scrolling tests) -->
+<div style="height: 3000px;"></div>
+
+<!-- Modal overlay: simulates detail/popups that trap the buried layer -->
+<div id="modal" style="position:fixed; inset:0; background:rgba(0,0,0,.72); z-index:1000; display:none; align-items:center; justify-content:center;">
+  <div style="background:#232323; padding:36px 48px; border-radius:10px; text-align:center; min-width:320px;">
+    <button id="m-close" style="float:right;">Close</button>
+    <div style="padding:16px 0;"><button id="m-a">Option A</button></div>
+    <div style="padding:16px 0;"><button id="m-b">Option B</button></div>
+    <div style="padding:16px 0;"><button id="m-c">Option C</button></div>
+  </div>
+</div>
+
+<script>
+  addEventListener('DOMContentLoaded', () => {
+    document.getElementById('open-modal').addEventListener('click', () => {
+      document.getElementById('modal').style.display = 'flex';
+    });
+    document.getElementById('m-close').addEventListener('click', () => {
+      document.getElementById('modal').style.display = 'none';
+    });
+  });
+</script>
+</html>
